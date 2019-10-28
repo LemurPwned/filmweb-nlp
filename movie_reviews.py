@@ -35,15 +35,14 @@ class FilmReview:
         with urllib.request.urlopen(url) as url_handl:
             html_code = url_handl.read()
             soup = BeautifulSoup(html_code, 'html.parser')
-            reviews_on_page = soup.find(
-                'section', {'class': 'section filmTopReviews page__section'})
-            for review_el in reviews[0].iter(r"*"):
-                if review_el.tag == 'a':
-                    href = review_el.attrib['href']
-                    if href.startswith('/review'):
-                        parsed_num += 1
-                        parsed_review = self.get_long_movie_review(href)
-                        review_json[parsed_review.title] = parsed_review.__dict__
+            reviews_on_page = soup.findAll(
+                'h3', {'class': 'review__title'})
+            for review in reviews_on_page:
+                parsed_num += 1
+                rev_href = review.find('a').attrs['href']
+                parsed_review = self.get_long_movie_review(rev_href)
+                if parsed_review is not None:
+                    review_json[parsed_review.title] = parsed_review.__dict__
         return parsed_num, review_json
 
     def get_movie_review(self, movie_id, page):
@@ -120,8 +119,12 @@ class FilmReview:
             review_title = soup.find("span", {"itemprop": "name"})
             review_text = soup.find("div", {"class": "newsContent"})
             review_rating = soup.find("span", {"itemprop": "ratingValue"})
-        return Review(title=review_title.text,
-                      text=review_text.text, rating=review_rating.text)
+            print(review_title, review_rating)
+        try:
+            return Review(title=review_title.text,
+                          text=review_text.text, rating=review_rating.text)
+        except AttributeError:
+            return None
 
 
 if __name__ == "__main__":
@@ -130,13 +133,13 @@ if __name__ == "__main__":
     # rev_links = fr.get_user_reviews('michalwalkiewicz')
     # rew = fr.get_long_movie_review(rev_links[0])
     # print(rew)
-    # total_parsed = 0
-    # review_json = {}
-    fr.parse_move_review_pages(1)
-    # for i in range(1, 20):
-    #     parsed, rev_subjsn = fr.parse_move_review_pages(i)
-    #     review_json = {**review_json, **rev_subjsn}
-    #     total_parsed += parsed
-    #     print(f"Parsed: {total_parsed}...")
-    # print(f"Parsing done... Dumping")
-    # json.dump(review_json, open(f'reviews_dict.json', 'w'))
+    total_parsed = 0
+    review_json = {}
+    # fr.parse_move_review_pages(1)
+    for i in range(1, 20):
+        parsed, rev_subjsn = fr.parse_move_review_pages(i)
+        review_json = {**review_json, **rev_subjsn}
+        total_parsed += parsed
+        print(f"Parsed: {total_parsed}...")
+    print(f"Parsing done... Dumping")
+    json.dump(review_json, open(f'reviews_dict.json', 'w'))
