@@ -6,7 +6,7 @@ class Stemmer:
         self.load()
     
     def load(self):
-        self.file = open(filename, "r")
+        self.file = open(self.filename, "r")
         self.data = json.loads(self.file.read())
         self.file.close()
 
