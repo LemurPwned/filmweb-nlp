@@ -2,6 +2,7 @@ import urllib.request
 from bs4 import BeautifulSoup
 from lxml import html
 import json
+import pandas as pd 
 
 
 class Review:
@@ -30,8 +31,9 @@ class FilmReview:
 
     def parse_move_review_pages(self, page):
         url = f"https://www.filmweb.pl/reviews?page={page}"
-        review_json = {}
+        # review_json = {}
         parsed_num = 0
+        review_list = []
         with urllib.request.urlopen(url) as url_handl:
             html_code = url_handl.read()
             soup = BeautifulSoup(html_code, 'html.parser')
@@ -42,43 +44,12 @@ class FilmReview:
                 rev_href = review.find('a').attrs['href']
                 parsed_review = self.get_long_movie_review(rev_href)
                 if parsed_review is not None:
-                    review_json[parsed_review.title] = parsed_review.__dict__
-        return parsed_num, review_json
+                    review_list.append(parsed_review)
+                    # review_json[parsed_review.title] = parsed_review.__dict__
+        return parsed_num, review_list
 
-    def get_movie_review(self, movie_id, page):
-        url = rf"{self.filmweb_api_server}/{movie_id}/discussion?page={page}"
-        with urllib.request.urlopen(url) as url_handl:
-            html_code = url_handl.read()
-            tree = html.fromstring(html_code)
-            rating_xpath = '/html/body/div[5]/div/div/div[2]/div/div/div/ul/li[5]/div[2]/div[1]/ul/li[3]/text()'
-            rating = tree.xpath(rating_xpath)
-            rating = rating[0].replace('ocenił(a) ten film na:', '')
-            review_text = '/html/body/div[5]/div/div/div[2]/div/div/div/ul/li[5]/div[2]/p/text()'
-            text = tree.xpath(
-                review_text
-            )
-            return Review(title=movie_id, text=text[0], rating=int(rating))
 
-    def get_user_reviews_xpath(self, user_id):
-        # https://www.filmweb.pl/user/michalwalkiewicz/reviews
-        url = f"{self.filmweb_api_server}/user/{user_id}/reviews"
-        review_list_xpath = "/html/body/div[2]/div[4]/div/section[2]/section/div/ul"
-        with urllib.request.urlopen(url) as url_handl:
-            html_code = url_handl.read()
-            tree = html.fromstring(html_code)
-            review_list = tree.xpath(review_list_xpath)
-            review_links = []
-            for element in review_list[0].iter(r'*'):
-                if element.tag == 'a':
-                    try:
-                        rev_link = element.attrib['href']
-                        if rev_link.startswith('/review'):
-                            review_links.append(rev_link)
-                    except KeyError:
-                        pass
-        return review_links
-
-    def get_user_reviews_xpath(self, user_id):
+    def get_user_reviews(self, user_id):
         # https://www.filmweb.pl/user/michalwalkiewicz/reviews
         url = f"{self.filmweb_api_server}/user/{user_id}/reviews"
         with urllib.request.urlopen(url) as url_handl:
@@ -89,27 +60,6 @@ class FilmReview:
             print(reviews_on_page)
         return 0
 
-    def get_long_movie_review_xpath(self, review_link):
-        url = f"{self.filmweb_api_server}{review_link}"
-        title_xpath = '/html/body/div[5]/div/div/div[1]/div/div[1]/div[1]/div[2]/div[2]/div[2]/ul/li[2]/a'
-        full_review_xpath = '/html/body/div[5]/div/div/div[1]/div/div[1]/div[2]/div[1]/div'
-        rating_xpath = '/html/body/div[5]/div/div/div[1]/div/div[1]/div[3]/div/div[2]/span/span[3]'
-        with urllib.request.urlopen(url) as url_handl:
-            html_code = url_handl.read()
-            tree = html.fromstring(html_code)
-            full_review = tree.xpath(
-                full_review_xpath
-            )[0]
-            full_review = full_review.text_content().strip().replace(
-                self.weird_text, '')
-            title = tree.xpath(
-                title_xpath)[0]
-            rating = tree.xpath(
-                rating_xpath
-            )[0]
-        return Review(title=title.text_content(), title_href=title.attrib['href'],
-                      text=full_review, rating=int(rating.text_content()))
-
     def get_long_movie_review(self, review_link):
         url = f"{self.filmweb_api_server}{review_link}"
 
@@ -117,29 +67,41 @@ class FilmReview:
             html_code = url_handl.read()
             soup = BeautifulSoup(html_code, 'html.parser')
             review_title = soup.find("span", {"itemprop": "name"})
-            review_text = soup.find("div", {"class": "newsContent"})
+            review_text = soup.find("div", {"class": "newsContent"}).text
+            review_text = review_text.replace(self.weird_text, '')
             review_rating = soup.find("span", {"itemprop": "ratingValue"})
-            print(review_title, review_rating)
+            # print(review_title, review_rating)
         try:
             return Review(title=review_title.text,
-                          text=review_text.text, rating=review_rating.text)
+                          text=review_text, rating=review_rating.text)
         except AttributeError:
             return None
 
+    def parse_reviews_as_dataframe(self, start_page=1, review_pages=200):
+        total_parsed = 0
+        review_titles, review_ratings, review_texts = [], [], []
+        for i in range(start_page, start_page+review_pages):
+            parsed, reviews = fr.parse_move_review_pages(i)
+            for review in reviews:
+                review_titles.append(review.title)
+                review_ratings.append(review.rating)
+                review_texts.append(review.text)
+            total_parsed += parsed
+            print(f"Parsed: {total_parsed}...")
+        print(f"Parsing done... Dumping")
+        df = pd.DataFrame.from_dict({
+            'title': review_titles,
+            'rating': review_ratings,
+            'content': review_texts
+        })
+
+        df.to_csv(f'reviews_for_bert_{start_page}_{review_pages}.csv', index=False)
 
 if __name__ == "__main__":
     fr = FilmReview()
+    fr.parse_reviews_as_dataframe(start_page=300, review_pages=150)
     # print(fr.get_movie_review('Zielona.Mila', 1))
     # rev_links = fr.get_user_reviews('michalwalkiewicz')
     # rew = fr.get_long_movie_review(rev_links[0])
     # print(rew)
-    total_parsed = 0
-    review_json = {}
-    # fr.parse_move_review_pages(1)
-    for i in range(1, 20):
-        parsed, rev_subjsn = fr.parse_move_review_pages(i)
-        review_json = {**review_json, **rev_subjsn}
-        total_parsed += parsed
-        print(f"Parsed: {total_parsed}...")
-    print(f"Parsing done... Dumping")
-    json.dump(review_json, open(f'reviews_dict.json', 'w'))
+
