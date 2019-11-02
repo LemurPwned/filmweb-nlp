@@ -8,21 +8,6 @@ from sklearn.metrics import precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
 
-def load_dataset():
-    filenames = os.listdir('.')
-    filenames = filter(lambda x: x.endswith('.csv'), filenames)
-    df = None
-    for filename in filenames:
-        tmp = pd.read_csv(filename)
-        if df is None:
-            df = tmp
-        else:
-            df = pd.concat([df, tmp])
-
-    df.drop_duplicates(inplace=True)
-    # suffle that shit
-    df = df.sample(frac=1).reset_index(drop=True)
-    return df
 
 
 def tfidf_transformer(df):
