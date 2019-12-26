@@ -1,0 +1,54 @@
+include:
+- ner/*
+kind: ArchiveUploadSpec
+name: ner-QC2M
+
+---
+apiVersion: fission.io/v1
+kind: Package
+metadata:
+  creationTimestamp: null
+  name: spacy-ea8a2719-e3a0-49f2-8cf8-4b3fc21a4672
+  namespace: default
+spec:
+  deployment:
+    checksum: {}
+  environment:
+    name: python
+    namespace: default
+  source:
+    checksum: {}
+    type: url
+    url: archive://ner-QC2M
+status:
+  buildstatus: pending
+  lastUpdateTimestamp: "2019-12-15T22:00:16.786172Z"
+
+---
+apiVersion: fission.io/v1
+kind: Function
+metadata:
+  creationTimestamp: null
+  name: spacy
+  namespace: default
+spec:
+  InvokeStrategy:
+    ExecutionStrategy:
+      ExecutorType: poolmgr
+      MaxScale: 0
+      MinScale: 0
+      SpecializationTimeout: 120
+      TargetCPUPercent: 0
+    StrategyType: execution
+  configmaps: null
+  environment:
+    name: python
+    namespace: default
+  functionTimeout: 60
+  package:
+    functionName: ner.main
+    packageref:
+      name: spacy-ea8a2719-e3a0-49f2-8cf8-4b3fc21a4672
+      namespace: default
+  resources: {}
+  secrets: null
