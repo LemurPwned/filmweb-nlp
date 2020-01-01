@@ -1,47 +1,3 @@
-# apiVersion: fission.io/v1
-# kind: Environment
-# metadata:
-#   creationTimestamp: null
-#   name: python
-#   namespace: default
-# spec:
-#   # builder: {}
-  # builder:
-  #   command: build
-  #   image: fission/python-builder
-#   imagepullsecret: ""
-#   keeparchive: false
-#   poolsize: 3
-#   resources: {}
-#   runtime:
-#     image: lemurpwned/fission-spacy
-#     container:
-#       name: spacy
-#       volumeMounts:
-#         - name: filevol
-#           mountPath: /etc/filevol
-#           readOnly: false
-#     podspec:
-#       # A container which will be merged with for pool manager
-#       containers:
-#       - name: spacy
-#         image: lemurpwned/fission-spacy
-#         volumeMounts:
-#           - name: filevol
-#             mountPath: /etc/filevol
-#             readOnly: false
-#       volumes:
-#         - name: funcvol
-          # hostPath: 
-          #   path: /Users/jakubmojsiejuk/Documents/Sandbox/spacy-workflow/text_files
-          #   type: Directory
-#           # downwardAPI:
-#           #   items:
-#           #     - path: "labels"
-#           #       fieldRef:
-#           #         fieldPath: metadata.labels
-#   version: 1
-
 apiVersion: fission.io/v1
 kind: Environment
 metadata:
@@ -84,7 +40,7 @@ spec:
                   fieldPath: metadata.labels
         - name: cvol
           hostPath: 
-            path: /mnt/test
+            path: /home/ubuntu/filmweb-nlp/data #/mnt/test
             type: Directory
   version: 2
 
