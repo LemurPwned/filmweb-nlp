@@ -3,7 +3,7 @@ from collections import defaultdict
 from flask import request
 import os
 
-nlp = spacy.load("en")
+nlp = spacy.load("pl-model")
 data_loc = '/etc/cvoldata'
 
 
