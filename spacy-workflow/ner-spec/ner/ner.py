@@ -1,9 +1,10 @@
 import spacy
 from collections import defaultdict
-from flask import request
+from flask import request, Response
 import os
+import json 
 
-nlp = spacy.load("pl-model")
+nlp = spacy.load("pl_model")
 data_loc = '/etc/cvoldata'
 
 
@@ -20,7 +21,7 @@ def main():
             body = e.with_traceback
     except KeyError:
         return "Header 'x-my-header' not found"
-    return "The header's value is '%s'" % result
+    return Response(json.dumps(result))
 
 
 def map_filename(filenames):
