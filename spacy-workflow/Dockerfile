@@ -14,13 +14,14 @@ RUN mkdir -p /var/www \
         python3-pip \
     && pip3 install -U pip
 
-ENV SPACY_VERSION    2.0.18
+ENV SPACY_VERSION 2.0.18
 
 # spacy
 RUN pip3 install -U \
         numpy \
         requests \
     && pip3 install -U spacy==${SPACY_VERSION} \
-    && python3 -m spacy download en   
+    && python3 -m spacy download en   \
+    && pip3 install https://storage.googleapis.com/spacy-pl-public-models/pl_model-1.0.0.tar.gz 
 
 ENTRYPOINT [ "/bin/bash" ]
