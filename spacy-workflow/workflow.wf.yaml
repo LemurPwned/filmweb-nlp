@@ -1,0 +1,14 @@
+apiVersion: 1
+output: ComposeArticle
+# Input: html document
+tasks:
+  ParseNer:
+    run: spacy
+    inputs: "{$.Invocation.Inputs.default}"
+  ComposeArticle:
+    run: compose
+    inputs:
+      # TODO use shortcut functions to make it more readable
+      body: "{$.Tasks.ParseNer.Output}"
+    requires:
+    - ParseNer
