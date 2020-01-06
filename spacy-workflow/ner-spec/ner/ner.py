@@ -14,8 +14,9 @@ def main():
         body = request.get_json()
         result = None
         try:
-            body = os.listdir(data_loc)
-            filenames = [os.path.join(data_loc, filename) for filename in body]
+            reviews_loc = os.path.join(data_loc, 'reviews')
+            body = os.listdir(reviews_loc)
+            filenames = [os.path.join(reviews_loc, filename) for filename in body]
             result = map_filename(filenames)
         except Exception as e:
             body = e.with_traceback
@@ -45,3 +46,4 @@ if __name__ == "__main__":
 
 # fission env create --spec --name python --image lemurpwned/fission-spacy --builder fission/python-builder
 # fission function create --spec --name spacy --env python --src "NER.py" --entrypoint NER.main
+# fission function updae --spec --name spacy --env python --src "NER.py" --entrypoint NER.main

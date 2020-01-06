@@ -35,8 +35,6 @@ RUN mkdir -p /var/www \
         python3-pip \
     && pip3 install -U pip
 
-ENV SPACY_VERSION 2.2.3
-
 COPY . /app
 
 COPY requirements.txt /app
@@ -44,7 +42,8 @@ COPY requirements.txt /app
 # spacy
 RUN pip3 install -U -r requirements.txt \
     # && python3 -m spacy download en  \
-    && pip3 install -U https://storage.googleapis.com/spacy-pl-public-models/pl_model-1.0.0.tar.gz 
+    && pip3 install -U https://storage.googleapis.com/spacy-pl-public-models/pl_model-1.0.0.tar.gz \
+    && pip3 install pyss3
 
 ENTRYPOINT ["python3"]
 CMD ["server.py"]

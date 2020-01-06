@@ -9,7 +9,7 @@ spec:
     command: build
     image: fission/python-builder
   keeparchive: false
-  poolsize: 0
+  poolsize: 2
   resources: {}
   runtime:
     image: lemurpwned/fission-spacy
@@ -40,9 +40,9 @@ spec:
                   fieldPath: metadata.labels
         - name: cvol
           hostPath: 
-            path: /home/ubuntu/filmweb-nlp/data #/mnt/test
+            path: /mnt/test #/mnt/test
             type: Directory
-  version: 2
+  version: 3
 
 
   # $ fission function create --spec --name spacy --env python --src "ner/*" --entrypoint ner.main
