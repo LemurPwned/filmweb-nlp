@@ -5,3 +5,4 @@ fission route create --method GET --url /nlp-flow --function nlp-flow --name nlp
 
 
 # export FISSION_ROUTER=$(minikube ip):$(kubectl -n fission get svc router -o jsonpath='{...nodePort}')
+export FISSION_ROUTER=(minikube ip):(kubectl -n fission get svc router -o jsonpath='{...nodePort}')

@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from lxml import html
 import json
 import pandas as pd
+import os
 
 
 class Review:
@@ -24,10 +25,11 @@ class FilmReview:
     def __init__(self):
         self.filmweb_api_server = 'http://filmweb.pl'
         self.weird_text = 'waitingModule.runWhenReady("FOOTER",function(){rodo.canProfileVisitor(function(a){var b=getKeywords(a);sas.cmd.push(function(){sas.call("std",{siteId:smartSiteId,pageId:smartPageId,formatId:46596,target:b})})})});'
+        self.save_dir = './movie_reviews'
+        os.makedirs(self.save_dir, exist_ok=True)
 
     def parse_move_review_pages(self, page):
         url = f"https://www.filmweb.pl/reviews?page={page}"
-        # review_json = {}
         parsed_num = 0
         review_list = []
         with urllib.request.urlopen(url) as url_handl:
@@ -43,45 +45,64 @@ class FilmReview:
                     # review_json[parsed_review.title] = parsed_review.__dict__
         return parsed_num, review_list
 
+    def parse_single_short_user_review(self, movie_id, link, parsed, page):
+        lnk = link.split('/discussion')[-1]
+        url = f"https://www.filmweb.pl{movie_id}/discussion{lnk}"
+        with urllib.request.urlopen(url) as url_handl:
+            html_code = url_handl.read()
+            with open(
+                    os.path.join(
+                        self.holder,
+                        movie_id.replace('.', '').replace(',', '').replace(
+                            '/', '') + f'_parsed_{parsed}_page{page}.html'), 'wb') as f:
+                f.write(html_code)
+            soup = BeautifulSoup(html_code, 'html.parser')
+            review = soup.find(
+                'li', {'class': 'forumTopicSection__item i_0 filmCategory'})
+            if not review:
+                review = soup.find('li', {
+                    'class':
+                    'forumTopicSection__item i_0 filmCategory spoiler'
+                })
+            actual_first_review = review.find(
+                'p', {
+                    'class': 'forumTopicSection__topicText'
+                }).text
+            try:
+                review_stars = review.find(
+                    'span', {
+                        'class': 'forumTopicSection__starsNo'
+                    }).text
+            except AttributeError:
+                review_stars = -1
+            actual_first_review = actual_first_review.replace('\t', '').replace('\n', '').replace('\r', '').strip()
+        return actual_first_review, review_stars
+
     def get_short_user_reviews(self, movie_id, page):
         url = f"https://www.filmweb.pl{movie_id}/discussion?page={page}"
         with urllib.request.urlopen(url) as url_handl:
             html_code = url_handl.read()
             soup = BeautifulSoup(html_code, 'html.parser')
-            reviews_on_page = soup.findAll('li', {'class': 'filmCategory'})
+            reviews_on_page = soup.findAll('a',
+                                           {'class': 'forumSection__itemLink'})
             reviews, ratings = [], []
             parsed = 0
             for short_review in reviews_on_page:
-                # print(short_review)
                 rating = None
-                rating_cands = short_review.findAll('li')
-                for plausible_rating in rating_cands:
-                    if 'oceni' in plausible_rating.text:
-                        rating_str = plausible_rating.text.replace(" ", "").replace('\n','').replace('\t','')
-                        try:
-                            rating = int(
-                                rating_str.replace(
-                                    'ocenił(a)tenfilmna:', ''))
-                        except ValueError:
-                            pass 
-                if rating is not None:
-                    # print(short_review)
-                    try:
-                        review_content = short_review.find('p', {'class': 'text normal'}).text
-                        if 'Uwaga Spoiler!' in review_content:
-                            print("FOUND")
-                        review_content = review_content.replace('\t', '').replace('\n', '').replace('\r', '').strip()
-                        if len(review_content) > 50:
-                            reviews.append(review_content)
-                            ratings.append(rating)
-                            parsed += 1
-                    except AttributeError:
-                        pass 
+                review_content, rating = self.parse_single_short_user_review(
+                    movie_id, short_review['href'],
+                    parsed=parsed, page=page)  # parsed is for saving
+                if len(review_content) > 50:
+                    ratings.append(rating)
+                    reviews.append(review_content)
+                    parsed += 1
         return parsed, reviews, ratings
 
     def iterate_movies(self, pages, sub_reviews, start_page=1):
         total_reviews, total_ratings = [], []
         total_parsed = 0
+        self.holder = os.path.join(self.save_dir, 'short_reviews')
+        os.makedirs(self.holder, exist_ok=True)
         for page in range(start_page, start_page + pages):
             url = f"https://www.filmweb.pl/films/search?orderBy=popularity&descending=true&page={page}"
             with urllib.request.urlopen(url) as url_handl:
@@ -99,7 +120,7 @@ class FilmReview:
                                 total_parsed += parsed
                                 total_ratings.extend(ratings)
                                 total_reviews.extend(reviews)
-                        except urllib.error.HTTPError:
+                        except (urllib.error.HTTPError, AttributeError):
                             print("Bad url")
 
                 print(f"Parsed {total_parsed} reviews")
@@ -107,8 +128,10 @@ class FilmReview:
             'content': total_reviews,
             'rating': total_ratings
         })
-        df.to_csv(f"short_reviews_bert_{sub_reviews}_{start_page}_{pages}.csv",
-                  index=False)
+        savepath = os.path.join(
+            self.save_dir,
+            f"short_reviews_bert_{sub_reviews}_{start_page}_{pages}.csv")
+        df.to_csv(savepath, index=False)
 
     def get_user_reviews(self, user_id):
         # https://www.filmweb.pl/user/michalwalkiewicz/reviews
@@ -164,4 +187,8 @@ class FilmReview:
 if __name__ == "__main__":
     fr = FilmReview()
     # fr.parse_reviews_as_dataframe(start_page=300, review_pages=150)
-    fr.iterate_movies(50, 10, 1)
+    fr.iterate_movies(
+        pages=10,
+        sub_reviews=10,
+        start_page=21
+    )

@@ -8,3 +8,4 @@ hiredis
 gevent
 cython
 spacy
+pyss3
