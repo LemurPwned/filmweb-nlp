@@ -190,5 +190,5 @@ if __name__ == "__main__":
     fr.iterate_movies(
         pages=10,
         sub_reviews=10,
-        start_page=21
+        start_page=31
     )
